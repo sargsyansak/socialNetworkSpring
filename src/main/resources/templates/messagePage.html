@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Message Page</title>
+</head>
+<body>
+<a href="/user">Back Home</a>
+<div th:each="message:${messages}">
+    <h2 th:text="'From: ' + ${message.fromId.name} + ' To: ' + ${message.toId.name}"></h2>
+    <p th:text="${message.text}"></p>
+    <h5 th:text="${message.date}"></h5>
+    <hr>
+</div>
+
+<form action="/sendMessage" method="post">
+    <input type="text" name="text" placeholder="Message">
+    <input type="submit" value="Send">
+</form>
+</body>
+</html>
