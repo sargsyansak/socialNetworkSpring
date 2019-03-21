@@ -1,7 +1,6 @@
 package com.example.socialnetworkspring.controller;
 
 
-
 import com.example.socialnetworkspring.model.Message;
 import com.example.socialnetworkspring.model.User;
 import com.example.socialnetworkspring.repository.MessageRepository;
@@ -17,9 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 @Controller
 public class MessageController {
@@ -31,11 +28,9 @@ public class MessageController {
     private User user;
 
     @GetMapping("/messagePage")
-    public String messagePage(@RequestParam("id") int id, ModelMap modelMap) {
-        List<Message> messages = new ArrayList<>(messageRepository.findAllMessagesById(id));
-        messages.addAll(messageRepository.findAllMessagesByIdSecond(id));
-        user = userRepository.getOne(id);
-        modelMap.addAttribute("messages", messages);
+    public String messagePage(@RequestParam("id") User id, ModelMap modelMap) {
+
+        modelMap.addAttribute("messages", messageRepository.findAllByFromIdOrToId(id, id));
         modelMap.addAttribute("toId", user);
         return "messagePage";
     }

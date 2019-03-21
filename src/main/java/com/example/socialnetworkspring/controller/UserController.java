@@ -1,8 +1,13 @@
 package com.example.socialnetworkspring.controller;
 
 import com.example.socialnetworkspring.model.User;
+import com.example.socialnetworkspring.model.UserFriend;
+import com.example.socialnetworkspring.model.UserRequest;
+import com.example.socialnetworkspring.repository.UserFriendRepository;
 import com.example.socialnetworkspring.repository.UserRepository;
+import com.example.socialnetworkspring.repository.UserRequestRepository;
 import com.example.socialnetworkspring.security.SpringUser;
+import com.example.socialnetworkspring.service.EmailService;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +28,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -33,9 +39,13 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private UserFriendRepository userFriendRepository;
+    @Autowired
+    private UserRequestRepository userRequestRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+
 
     @GetMapping("/login")
     public String loginPage() {
@@ -49,17 +59,19 @@ public class UserController {
 
     @GetMapping("/user")
     public String userPage(@AuthenticationPrincipal SpringUser springUser, ModelMap modelMap) {
-        List<Integer> allFriendRequests = userRepository.findAllFriendRequests(springUser.getUser().getId());
-        List<Integer> allFriends = userRepository.findAllFriends(springUser.getUser().getId());
-        List<Integer> all = new ArrayList<>(allFriends);
-        all.addAll(userRepository.findAllFriendsSecond(springUser.getUser().getId()));
-        List<User> allById = userRepository.findAllById(allFriendRequests);
-        List<User> allFriend = userRepository.findAllById(all);
-
+        List<UserFriend> friends = userFriendRepository.findAllByToIdOrFromId(springUser.getUser().getId(), springUser.getUser().getId());
+        List<User> userFriends = new ArrayList<>();
+        for (UserFriend friend : friends) {
+            if (friend.getFrom().getId() == springUser.getUser().getId()) {
+                userFriends.add(friend.getTo());
+            } else if (friend.getTo().getId() == springUser.getUser().getId()) {
+                userFriends.add(friend.getFrom());
+            }
+        }
         modelMap.addAttribute("user", springUser.getUser());
-        modelMap.addAttribute("users", userRepository.findAll());
-        modelMap.addAttribute("requests", allById);
-        modelMap.addAttribute("friends", allFriend);
+        modelMap.addAttribute("users", userRepository.findAllByIdIsNotLike(springUser.getUser().getId()));
+        modelMap.addAttribute("requests", userRequestRepository.findAllByToId(springUser.getUser().getId()));
+        modelMap.addAttribute("friends", userFriends);
         return "userPage";
     }
 
@@ -89,20 +101,27 @@ public class UserController {
 
     @GetMapping("/sendRequest")
     public String request(@RequestParam("id") int id, @AuthenticationPrincipal SpringUser springUser) {
-        User one = userRepository.getOne(id);
-        if (one != null) {
-            userRepository.saveFriendRequest(springUser.getUser().getId(), one.getId());
-        }
+        UserRequest requests = new UserRequest();
+        requests.setTo(userRepository.getOne(id));
+        requests.setFrom(springUser.getUser());
+        requests.setDate(new Date());
+        userRequestRepository.save(requests);
+
         return "redirect:/user";
     }
 
     @GetMapping("/acceptOrReject")
     public String acceptOrReject(@RequestParam("id") int id, @RequestParam("action") String action, @AuthenticationPrincipal SpringUser springUser) {
-        if (action.equals("accept") && userRepository.getOne(id) != null) {
-            userRepository.addFriend(springUser.getUser().getId(), id);
-            userRepository.removeRequest(id, springUser.getUser().getId());
+        User fromUser = userRepository.getOne(id);
+        if (action.equals("accept") && fromUser != null) {
+            UserFriend userFriend = new UserFriend();
+            userFriend.setFrom(fromUser);
+            userFriend.setTo(springUser.getUser());
+            userFriend.setDate(new Date());
+            userFriendRepository.save(userFriend);
+            userRequestRepository.deleteByToIdAndFromId(springUser.getUser().getId(), fromUser.getId());
         } else if (action.equals("reject") && userRepository.getOne(id) != null) {
-            userRepository.removeRequest(id, springUser.getUser().getId());
+            userRequestRepository.deleteByToIdAndFromId(fromUser.getId(), springUser.getUser().getId());
         }
         return "redirect:/user";
     }
@@ -110,8 +129,7 @@ public class UserController {
 
     @GetMapping("/remove")
     public String deleteFriend(@RequestParam("id") int id, @AuthenticationPrincipal SpringUser springUser) {
-        userRepository.deleteFriendById(id, springUser.getUser().getId());
-        userRepository.deleteUserFriendById(id, springUser.getUser().getId());
+        userFriendRepository.deleteByToIdAndFromIdOrFromIdAndToId(id, springUser.getUser().getId(), id, springUser.getUser().getId());
         return "redirect:/user";
     }
 
