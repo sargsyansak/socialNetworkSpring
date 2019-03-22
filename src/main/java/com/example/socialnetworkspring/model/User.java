@@ -29,4 +29,8 @@ public class User {
     private String password;
     @Column(name = "pic_url")
     private String picUrl;
+    @Column
+    private boolean isActive = false;
+    @Column
+    private String token;
 }

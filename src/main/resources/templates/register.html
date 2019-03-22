@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Register</title>
 </head>
 <body>
+<h2 style="color: red" th:if="${message!=null}" th:text="${message}"></h2>
 <form action="/register" method="post" enctype="multipart/form-data">
     <input type="text" name="name" placeholder="name"> <br>
     <input type="text" name="surname" placeholder="surname"> <br>

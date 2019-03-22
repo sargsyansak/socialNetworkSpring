@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Controller
 public class UserController {
@@ -45,6 +46,8 @@ public class UserController {
     private UserRequestRepository userRequestRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private EmailService emailService;
 
 
     @GetMapping("/login")
@@ -53,8 +56,13 @@ public class UserController {
     }
 
     @GetMapping("/loginSuccess")
-    public String loginSuccess() {
-        return "redirect:/user";
+    public String loginSuccess(@AuthenticationPrincipal SpringUser springUser, ModelMap modelMap) {
+        if (springUser.getUser().isActive()) {
+            return "redirect:/user";
+        } else {
+            modelMap.addAttribute("message", "Your account is doesn't active");
+            return "login";
+        }
     }
 
     @GetMapping("/user")
@@ -82,14 +90,34 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public String userRegister(@ModelAttribute User user, @RequestParam("pic") MultipartFile file) throws IOException {
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        File picture = new File(imageUploadDir + File.separator + fileName);
-        file.transferTo(picture);
-        user.setPicUrl(fileName);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-        return "redirect:register";
+    public String userRegister(@ModelAttribute User user, @RequestParam("pic") MultipartFile file,ModelMap modelMap) throws IOException {
+        if (userRepository.findByEmail(user.getEmail()) == null) {
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            File picture = new File(imageUploadDir + File.separator + fileName);
+            file.transferTo(picture);
+            String token = UUID.randomUUID().toString();
+            user.setPicUrl(fileName);
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            user.setToken(token);
+            userRepository.save(user);
+            emailService.sendSimpleMessage(user.getEmail(), "Բարի գալուստ " + user.getName(),
+                    "Շնորհակալություն, դուք գրանցվել եք մեր կայքում, հաստատելու համար բացեք այս հղումը։ " +
+                            "\n http://localhost:8080/activateProfile?token=" + token);
+            return "redirect:register";
+        }else{
+            modelMap.addAttribute("message","User with this email is exist");
+            return "register";
+        }
+    }
+
+    @GetMapping("/activateProfile")
+    public String activate(@RequestParam("token") String token) {
+        User byToken = userRepository.findByToken(token);
+        byToken.setActive(true);
+        userRepository.save(byToken);
+        return "redirect:/";
+
+
     }
 
     @GetMapping("/user/getImage")

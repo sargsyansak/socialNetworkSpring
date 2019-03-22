@@ -1,10 +1,10 @@
 package com.example.socialnetworkspring.security;
 
 
+import com.example.socialnetworkspring.model.User;
 import com.example.socialnetworkspring.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
-import com.example.socialnetworkspring.model.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
