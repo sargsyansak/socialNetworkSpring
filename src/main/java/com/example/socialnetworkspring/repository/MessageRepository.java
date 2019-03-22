@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Integer> {
 
-    List<Message> findAllByFromIdOrToId(User fromId, User toId);
+
+    List<Message> findAllByFromId_IdOrToId_Id(int fromId, int toId);
 
 }

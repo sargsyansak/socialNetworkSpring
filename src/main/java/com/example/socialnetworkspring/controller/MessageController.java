@@ -28,9 +28,10 @@ public class MessageController {
     private User user;
 
     @GetMapping("/messagePage")
-    public String messagePage(@RequestParam("id") User id, ModelMap modelMap) {
-
-        modelMap.addAttribute("messages", messageRepository.findAllByFromIdOrToId(id, id));
+    public String messagePage(@RequestParam("id") int id, ModelMap modelMap) {
+        User user = userRepository.getOne(id);
+        this.user = user;
+        modelMap.addAttribute("messages", messageRepository.findAllByFromId_IdOrToId_Id(id, id));
         modelMap.addAttribute("toId", user);
         return "messagePage";
     }
